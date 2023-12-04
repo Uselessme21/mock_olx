@@ -1,0 +1,505 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Browse Classified Ads</title>
+    <style>
+      body {
+        font-family: Arial, sans-serif;
+        margin: 0;
+        padding: 0;
+        background-color: #f4f4f4;
+      }
+
+      .ads-container {
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: space-around;
+      }
+
+      .ad-card {
+        background-color: #fff;
+        margin: 10px;
+        padding: 20px;
+        border-radius: 8px;
+        box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+        width: 300px;
+      }
+
+      .ad-card img {
+        max-width: 100%;
+        border-radius: 4px;
+      }
+
+      .pagination {
+        display: flex;
+        justify-content: center;
+        margin-top: 20px;
+      }
+
+      .pagination button {
+        padding: 10px;
+        margin: 0 5px;
+        background-color: #4caf50;
+        color: #fff;
+        border: none;
+        border-radius: 4px;
+        cursor: pointer;
+      }
+
+      .pagination button:hover {
+        background-color: #45a049;
+      }
+
+      .sort-search-buttons {
+        display: flex;
+        justify-content: space-between;
+        margin: 20px;
+      }
+
+      .sort-search-buttons select,
+      .sort-search-buttons input {
+        padding: 8px;
+        margin-right: 10px;
+      }
+
+      .edit-delete-buttons {
+        margin-top: 10px;
+      }
+
+      .edit-delete-buttons button {
+        padding: 8px;
+        margin-right: 10px;
+        background-color: #4caf50;
+        color: #fff;
+        border: none;
+        border-radius: 4px;
+        cursor: pointer;
+      }
+
+      .edit-delete-buttons button:hover {
+        background-color: #45a049;
+      }
+
+      /*  */
+      .modal {
+        display: none; 
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background-color: rgba(
+          0,
+          0,
+          0,
+          0.5
+        );
+      }
+
+      .modal-content {
+        background-color: #fefefe;
+        margin: 10% auto;
+        padding: 20px;
+        border-radius: 8px;
+        box-shadow: 0 0 10px rgba(0, 0, 0, 0.3);
+        width: 60%;
+      }
+
+      
+      .close {
+        color: #aaa;
+        float: right;
+        font-size: 28px;
+        font-weight: bold;
+        cursor: pointer;
+      }
+
+      .close:hover,
+      .close:focus {
+        color: black;
+        text-decoration: none;
+        cursor: pointer;
+      }
+
+   
+      #editForm {
+        display: grid;
+        gap: 10px;
+      }
+
+      #editForm label {
+        font-weight: bold;
+      }
+
+      #editForm input,
+      #editForm textarea,
+      #editForm select {
+        width: 100%;
+        padding: 8px;
+        box-sizing: border-box;
+      }
+
+      #editForm button {
+        background-color: #4caf50;
+        color: #fff;
+        border: none;
+        padding: 10px;
+        border-radius: 4px;
+        cursor: pointer;
+      }
+
+      #editForm button:hover {
+        background-color: #45a049;
+      }
+    </style>
+    <link rel="stylesheet" href="./style.css" />
+  </head>
+  <body>
+    <nav>
+      <a href="./browseClassified.html">Browse products</a>
+      <a href="./postClassified.html">Post products</a>
+    </nav>
+    <div class="sort-search-buttons">
+      <select id="categoryFilter">
+        <option value="">All Categories</option>
+        <option value="Clothing">Clothing</option>
+        <option value="Electronics">Electronics</option>
+        <option value="Furniture">Furniture</option>
+        <option value="Other">Other</option>
+      </select>
+      <input
+        type="text"
+        id="searchInput"
+        placeholder="Search by product name"
+      />
+      <button onclick="applyFilters()">Apply Filters</button>
+    </div>
+
+    <div class="ads-container" id="adsContainer">
+      <!-- Ads  here -->
+    </div>
+    <div id="editModal" class="modal">
+      <div class="modal-content">
+        <span class="close" onclick="closeModal()">&times;</span>
+        <h2>Edit Product</h2>
+        <form id="editForm">
+          <label for="editName">Name:</label>
+          <input type="text" id="editName" name="editName" required />
+
+          <label for="editDescription">Description:</label>
+          <textarea
+            id="editDescription"
+            name="editDescription"
+            required
+          ></textarea>
+
+          <label for="editCategory">Category:</label>
+          <select id="editCategory" name="editCategory" required>
+            <option value="clothing">Clothing</option>
+            <option value="electronic">Electronics</option>
+            <option value="Furniture">Furniture</option>
+            <option value="Other">Other</option>
+          </select>
+
+          <label for="editImage">Image URL:</label>
+          <input type="text" id="editImage" name="editImage" required />
+
+          <label for="editLocation">Location:</label>
+          <input type="text" id="editLocation" name="editLocation" required />
+
+          <label for="editPrice">Price:</label>
+          <input type="text" id="editPrice" name="editPrice" required />
+
+          <button type="button" onclick="submitEditForm()">Submit</button>
+        </form>
+      </div>
+    </div>
+
+    <div class="pagination" id="paginationButtons">
+      <!-- Pagination buttons  -->
+    </div>
+
+    <script>
+      const token = localStorage.getItem("token") || "";
+
+      let currentPage = 1;
+      const pageSize = 4;
+      let canLoadMore = true;
+      loadAds();
+      function loadAds() {
+        const xhr = new XMLHttpRequest();
+        xhr.open(
+          "GET",
+          `http://localhost:8090/api/getAd?page=${currentPage}`,
+          true
+        );
+        xhr.setRequestHeader("Authorization", token);
+
+        xhr.onload = function () {
+          if (xhr.status === 200) {
+            const adsContainer = document.getElementById("adsContainer");
+            const paginationButtons =
+              document.getElementById("paginationButtons");
+
+            const ads = JSON.parse(xhr.responseText);
+
+            if (ads.length > 0) {
+              adsContainer.innerHTML = "";
+              ads.forEach((ad) => {
+                const adCard = createAdCard(ad);
+                adsContainer.appendChild(adCard);
+              });
+
+              createPaginationButtons();
+            } else {
+              canLoadMore = false;
+            }
+
+            displayEditDeleteButtons();
+          } else {
+            console.error("Error loading ads:", xhr.status, xhr.responseText);
+          }
+        };
+
+        xhr.onerror = function () {
+          console.error("An error occurred during the request.");
+        };
+
+        xhr.send();
+      }
+
+      function createPaginationButtons() {
+        const paginationButtons = document.getElementById("paginationButtons");
+        paginationButtons.innerHTML = "";
+
+        const prevButton = document.createElement("button");
+        prevButton.textContent = "Previous";
+        prevButton.onclick = () => loadPrevPage();
+        prevButton.disabled = currentPage === 1;
+
+        const nextButton = document.createElement("button");
+        nextButton.textContent = "Next";
+        nextButton.onclick = () => loadNextPage();
+        nextButton.disabled = !canLoadMore;
+
+        paginationButtons.appendChild(prevButton);
+        paginationButtons.appendChild(nextButton);
+      }
+
+      function loadNextPage() {
+        if (canLoadMore) {
+          currentPage++;
+          loadAds();
+        }
+      }
+
+      function loadPrevPage() {
+        if (currentPage > 1) {
+          currentPage--;
+          loadAds();
+        }
+      }
+
+      function createAdCard(ad) {
+        const adCard = document.createElement("div");
+        adCard.className = "ad-card";
+
+        const adImage = document.createElement("img");
+        adImage.src = ad.image;
+        adImage.alt = ad.name;
+
+        const adName = document.createElement("h3");
+        adName.textContent = ad.name;
+
+        const adDescription = document.createElement("p");
+        adDescription.textContent = ad.description;
+
+        const adCategory = document.createElement("p");
+        adCategory.textContent = `Category: ${ad.category}`;
+
+        const adLocation = document.createElement("p");
+        adLocation.textContent = `Location: ${ad.location}`;
+
+        const adPostedAt = document.createElement("p");
+        adPostedAt.textContent = `Posted at: ${ad.postedAt}`;
+
+        const adPrice = document.createElement("p");
+        adPrice.textContent = `Price: ${ad.price}`;
+
+        const editDeleteButtons = document.createElement("div");
+        editDeleteButtons.className = "edit-delete-buttons";
+
+        const editButton = document.createElement("button");
+        editButton.textContent = "Edit";
+        editButton.onclick = () => editAd(ad._id);
+
+        const deleteButton = document.createElement("button");
+        deleteButton.textContent = "Delete";
+        deleteButton.onclick = () => deleteAd(ad._id);
+
+        editDeleteButtons.appendChild(editButton);
+        editDeleteButtons.appendChild(deleteButton);
+
+        adCard.appendChild(adImage);
+        adCard.appendChild(adName);
+        adCard.appendChild(adDescription);
+        adCard.appendChild(adCategory);
+        adCard.appendChild(adLocation);
+        adCard.appendChild(adPostedAt);
+        adCard.appendChild(adPrice);
+        adCard.appendChild(editDeleteButtons);
+
+        return adCard;
+      }
+
+      function changePage(page) {
+        currentPage = page;
+        loadAds();
+      }
+
+      function applyFilters() {
+        const categoryFilter = document.getElementById("categoryFilter").value;
+        const searchInput = document.getElementById("searchInput").value;
+
+        const xhr = new XMLHttpRequest();
+        xhr.open(
+          "GET",
+          `http://localhost:8090/api/getAd?page=${currentPage}&category=${categoryFilter}&search=${searchInput}`,
+          true
+        );
+        xhr.setRequestHeader("Authorization", token);
+        xhr.onload = function () {
+          if (xhr.status === 200) {
+            const adsContainer = document.getElementById("adsContainer");
+            const paginationButtons =
+              document.getElementById("paginationButtons");
+
+            const ads = JSON.parse(xhr.responseText);
+
+            adsContainer.innerHTML = "";
+
+            ads.forEach((ad) => {
+              const adCard = createAdCard(ad);
+              adsContainer.appendChild(adCard);
+            });
+
+            createPaginationButtons();
+
+            displayEditDeleteButtons();
+          } else {
+            console.error(
+              "Error applying filters:",
+              xhr.status,
+              xhr.responseText
+            );
+          }
+        };
+
+        xhr.onerror = function () {
+          console.error("An error occurred during the request.");
+        };
+
+        xhr.send();
+      }
+
+      function displayEditDeleteButtons() {
+        if (token) {
+          const editButtons = document.querySelectorAll(
+            ".edit-delete-buttons button:first-child"
+          );
+          const deleteButtons = document.querySelectorAll(
+            ".edit-delete-buttons button:last-child"
+          );
+
+          editButtons.forEach(
+            (button) => (button.style.display = "inline-block")
+          );
+          deleteButtons.forEach(
+            (button) => (button.style.display = "inline-block")
+          );
+        }
+      }
+
+      function editAd(adId) {
+        fetchAdById(adId, function (adData) {
+          openEditModal(adData);
+        });
+      }
+      function fetchAdById(Id, callback) {
+        const xhr = new XMLHttpRequest();
+        xhr.open("GET", `http://localhost:8090/api/getAd/${Id}`, true);
+        xhr.setRequestHeader("Authorization", token);
+
+        xhr.onload = function () {
+          if (xhr.status === 200) {
+            const adData = JSON.parse(xhr.responseText);
+            callback(adData);
+          } else {
+            console.error(
+              "Error fetching ad by ID:",
+              xhr.status,
+              xhr.responseText
+            );
+          }
+        };
+
+        xhr.onerror = function () {
+          console.error("An error occurred during the request.");
+        };
+
+        xhr.send();
+      }
+
+      function deleteAd(adId) {
+        const xhr = new XMLHttpRequest();
+        xhr.open("DELETE", `http://localhost:8090/api/deleteAd/${adId}`, true);
+        xhr.setRequestHeader("Authorization", token);
+
+        xhr.onload = function () {
+          if (xhr.status === 200) {
+            console.log("Ad deleted successfully.");
+            loadAds(); // Refresh ads after deletion
+          } else {
+            console.error("Error deleting ad:", xhr.status, xhr.responseText);
+          }
+        };
+
+        xhr.onerror = function () {
+          console.error("An error occurred during the request.");
+        };
+
+        xhr.send();
+        console.log(`Delete ad with ID: ${adId}`);
+      }
+
+      function openEditModal(ad) {
+        // Populate the form fields with ad details
+        document.getElementById("editName").value = ad.name;
+        document.getElementById("editDescription").value = ad.description;
+        document.getElementById("editCategory").value = ad.category;
+        document.getElementById("editImage").value = ad.image;
+        document.getElementById("editLocation").value = ad.location;
+        document.getElementById("editPrice").value = ad.price;
+
+        // Show the modal
+        document.getElementById("editModal").style.display = "block";
+      }
+
+      function closeModal() {
+        // Close the modal
+        document.getElementById("editModal").style.display = "none";
+      }
+
+      function submitEditForm() {
+        // Implement logic to submit the edited form (send request to server)
+        // You can use XMLHttpRequest or Fetch API for this
+
+        // After successfully editing, close the modal and reload the ads
+        closeModal();
+        loadAds();
+      }
+    </script>
+  </body>
+</html>
