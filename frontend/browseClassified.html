@@ -232,7 +232,7 @@
         const xhr = new XMLHttpRequest();
         xhr.open(
           "GET",
-          `http://localhost:8090/api/getAd?page=${currentPage}`,
+          `https://mock5-b32b.onrender.com/api/getAd?page=${currentPage}`,
           true
         );
         xhr.setRequestHeader("Authorization", token);
@@ -366,7 +366,7 @@
         const xhr = new XMLHttpRequest();
         xhr.open(
           "GET",
-          `http://localhost:8090/api/getAd?page=${currentPage}&category=${categoryFilter}&search=${searchInput}`,
+          `https://mock5-b32b.onrender.com/api/getAd?page=${currentPage}&category=${categoryFilter}&search=${searchInput}`,
           true
         );
         xhr.setRequestHeader("Authorization", token);
@@ -429,7 +429,7 @@
       }
       function fetchAdById(Id, callback) {
         const xhr = new XMLHttpRequest();
-        xhr.open("GET", `http://localhost:8090/api/getAd/${Id}`, true);
+        xhr.open("GET", `https://mock5-b32b.onrender.com/api/getAd/${Id}`, true);
         xhr.setRequestHeader("Authorization", token);
 
         xhr.onload = function () {
@@ -454,7 +454,7 @@
 
       function deleteAd(adId) {
         const xhr = new XMLHttpRequest();
-        xhr.open("DELETE", `http://localhost:8090/api/deleteAd/${adId}`, true);
+        xhr.open("DELETE", `https://mock5-b32b.onrender.com/api/deleteAd/${adId}`, true);
         xhr.setRequestHeader("Authorization", token);
 
         xhr.onload = function () {
@@ -493,10 +493,7 @@
       }
 
       function submitEditForm() {
-        // Implement logic to submit the edited form (send request to server)
-        // You can use XMLHttpRequest or Fetch API for this
-
-        // After successfully editing, close the modal and reload the ads
+        
         closeModal();
         loadAds();
       }
